@@ -1,0 +1,13 @@
+services:
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_DB: demo_graphql
+      POSTGRES_USER: demo
+      POSTGRES_PASSWORD: demo
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_data_demo:/var/lib/postgresql/data
+volumes:
+  postgres_data_demo:

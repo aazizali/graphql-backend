@@ -1,0 +1,111 @@
+scalar UUID
+scalar BigDecimal
+scalar DateTime
+scalar Long
+
+type Query {
+  customer(id: UUID!): Customer
+  customers(filter: CustomerFilter, sort: CustomerSort, page: OffsetPage): CustomerConnection!
+  orders(customerId: UUID!, filter: OrderFilter, sort: OrderSort, page: OffsetPage): OrderConnection!
+}
+
+type Mutation {
+  createCustomer(input: CreateCustomerInput!): Customer!
+  createOrder(input: CreateOrderInput!): Order!
+}
+
+type Customer {
+  id: UUID!
+  email: String!
+  name: String!
+  createdAt: DateTime!
+}
+
+type Order {
+  id: UUID!
+  customerId: UUID!
+  status: OrderStatus!
+  totalAmount: BigDecimal!
+  createdAt: DateTime!
+}
+
+enum OrderStatus {
+  NEW
+  PAID
+  SHIPPED
+}
+
+input CreateCustomerInput {
+  email: String!
+  name: String!
+}
+
+input CreateOrderInput {
+  customerId: UUID!
+  status: OrderStatus!
+  totalAmount: BigDecimal!
+}
+
+input CustomerFilter {
+  emailContains: String
+  nameContains: String
+  createdFrom: DateTime
+  createdTo: DateTime
+}
+
+input OrderFilter {
+  statusIn: [OrderStatus!]
+  minTotal: BigDecimal
+  maxTotal: BigDecimal
+  createdFrom: DateTime
+  createdTo: DateTime
+}
+
+enum CustomerSortField {
+  EMAIL
+  NAME
+  CREATED_AT
+}
+
+enum OrderSortField {
+  STATUS
+  TOTAL_AMOUNT
+  CREATED_AT
+}
+
+enum SortDirection {
+  ASC
+  DESC
+}
+
+input CustomerSort {
+  field: CustomerSortField
+  direction: SortDirection
+}
+
+input OrderSort {
+  field: OrderSortField
+  direction: SortDirection
+}
+
+input OffsetPage {
+  offset: Int
+  limit: Int
+}
+
+type PageInfo {
+  total: Long!
+  offset: Int!
+  limit: Int!
+  hasNext: Boolean!
+}
+
+type CustomerConnection {
+  items: [Customer!]!
+  pageInfo: PageInfo!
+}
+
+type OrderConnection {
+  items: [Order!]!
+  pageInfo: PageInfo!
+}
