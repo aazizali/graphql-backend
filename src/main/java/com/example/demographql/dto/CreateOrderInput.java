@@ -1,4 +1,4 @@
-package com.example.demographql.graphql;
+package com.example.demographql.dto;
 
 import com.example.demographql.domain.OrderStatus;
 import jakarta.validation.constraints.DecimalMin;

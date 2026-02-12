@@ -1,4 +1,4 @@
-package com.example.demographql.graphql;
+package com.example.demographql.dto;
 
 import java.time.OffsetDateTime;
 

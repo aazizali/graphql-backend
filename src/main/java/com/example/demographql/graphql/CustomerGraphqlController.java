@@ -2,6 +2,15 @@ package com.example.demographql.graphql;
 
 import com.example.demographql.domain.Customer;
 import com.example.demographql.domain.Order;
+import com.example.demographql.dto.CreateCustomerInput;
+import com.example.demographql.dto.CreateOrderInput;
+import com.example.demographql.dto.CustomerConnection;
+import com.example.demographql.dto.CustomerFilter;
+import com.example.demographql.dto.CustomerSort;
+import com.example.demographql.dto.OffsetPage;
+import com.example.demographql.dto.OrderConnection;
+import com.example.demographql.dto.OrderFilter;
+import com.example.demographql.dto.OrderSort;
 import com.example.demographql.exception.NotFoundException;
 import com.example.demographql.persistence.CustomerRepository;
 import com.example.demographql.persistence.OrderRepository;
@@ -14,9 +23,11 @@ import org.springframework.graphql.data.method.annotation.MutationMapping;
 import org.springframework.graphql.data.method.annotation.QueryMapping;
 import org.springframework.stereotype.Controller;
 import org.springframework.validation.annotation.Validated;
+import org.springframework.web.bind.annotation.CrossOrigin;
 
 @Controller
 @Validated
+@CrossOrigin(origins = "*")
 public class CustomerGraphqlController {
 
     private final CustomerRepository customerRepository;

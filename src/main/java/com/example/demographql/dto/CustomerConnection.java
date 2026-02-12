@@ -1,4 +1,4 @@
-package com.example.demographql.graphql;
+package com.example.demographql.dto;
 
 import com.example.demographql.domain.Customer;
 import com.example.demographql.persistence.PageResult;

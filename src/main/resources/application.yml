@@ -1,6 +1,9 @@
 spring:
   application:
     name: demo-graphql
+  graphql:
+    graphiql:
+      enabled: true
   datasource:
     url: jdbc:postgresql://localhost:5433/demo_graphql
     username: demo
@@ -11,8 +14,6 @@ spring:
       ddl-auto: validate
     properties:
       hibernate.jdbc.time_zone: UTC
-  graphql:
-    path: /graphql
   flyway:
     enabled: true
   docker:
@@ -26,3 +27,4 @@ management:
 logging:
   level:
     root: INFO
+    sql: DEBUG

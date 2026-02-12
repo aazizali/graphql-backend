@@ -1,4 +1,4 @@
-package com.example.demographql.graphql;
+package com.example.demographql.dto;
 
 public enum CustomerSortField {
     EMAIL,

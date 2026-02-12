@@ -1,4 +1,4 @@
-package com.example.demographql.graphql;
+package com.example.demographql.dto;
 
 public record CustomerSort(CustomerSortField field, SortDirection direction) {
 

@@ -2,11 +2,11 @@ package com.example.demographql.persistence;
 
 import com.example.demographql.domain.Order;
 import com.example.demographql.domain.QOrder;
-import com.example.demographql.graphql.OffsetPage;
-import com.example.demographql.graphql.OrderFilter;
-import com.example.demographql.graphql.OrderSort;
-import com.example.demographql.graphql.OrderSortField;
-import com.example.demographql.graphql.SortDirection;
+import com.example.demographql.dto.OffsetPage;
+import com.example.demographql.dto.OrderFilter;
+import com.example.demographql.dto.OrderSort;
+import com.example.demographql.dto.OrderSortField;
+import com.example.demographql.dto.SortDirection;
 import com.querydsl.core.BooleanBuilder;
 import com.querydsl.core.types.OrderSpecifier;
 import com.querydsl.jpa.impl.JPAQueryFactory;

@@ -7,6 +7,7 @@ plugins {
 group = "com.example"
 version = "0.0.1-SNAPSHOT"
 description = "demo-graphql"
+val querydslVersion = "7.1"
 
 java {
     toolchain {
@@ -27,17 +28,18 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-actuator")
     implementation("org.springframework.boot:spring-boot-starter-flyway")
     implementation("org.flywaydb:flyway-database-postgresql")
-    implementation("com.querydsl:querydsl-jpa:5.0.0:jakarta")
     implementation("com.graphql-java:graphql-java-extended-scalars:22.0")
+    implementation("io.github.openfeign.querydsl:querydsl-jpa:$querydslVersion")
 
-    developmentOnly("org.springframework.boot:spring-boot-docker-compose")
+    annotationProcessor("io.github.openfeign.querydsl:querydsl-apt:$querydslVersion:jakarta")
+    annotationProcessor("jakarta.persistence:jakarta.persistence-api")
+    annotationProcessor("jakarta.annotation:jakarta.annotation-api")
+
+    compileOnly("jakarta.annotation:jakarta.annotation-api")
 
     runtimeOnly("org.postgresql:postgresql")
 
-    annotationProcessor("com.querydsl:querydsl-apt:5.0.0:jakarta")
-    annotationProcessor("jakarta.persistence:jakarta.persistence-api")
-    annotationProcessor("jakarta.annotation:jakarta.annotation-api")
-    compileOnly("jakarta.annotation:jakarta.annotation-api")
+    developmentOnly("org.springframework.boot:spring-boot-docker-compose")
 
     testImplementation("org.springframework.boot:spring-boot-starter-test")
     testImplementation("org.springframework.boot:spring-boot-testcontainers")
