@@ -35,8 +35,10 @@ pipeline {
     agent {
         docker {
             image 'eclipse-temurin:25-jdk-jammy'
-            args  '''-v /var/run/docker.sock:/var/run/docker.sock
+            args  '''-u root
+                     -v /var/run/docker.sock:/var/run/docker.sock
                      -v $HOME/.gradle:/root/.gradle
+                     -e GRADLE_USER_HOME=/root/.gradle
                      -e TESTCONTAINERS_RYUK_DISABLED=true
                      -e DOCKER_HOST=unix:///var/run/docker.sock'''
         }
