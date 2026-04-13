@@ -117,6 +117,7 @@ pipeline {
                 always {
                     junit testResults: 'build/test-results/test/**/*.xml',
                           allowEmptyResults: true
+                    sh 'mkdir -p build/reports/tests/test'
                     publishHTML([
                         allowMissing         : true,
                         alwaysLinkToLastBuild: true,
@@ -145,12 +146,20 @@ pipeline {
                 }
             }
             steps {
-                timeout(time: 10, unit: 'MINUTES') {
-                    input(
-                        message  : 'Run integration tests against a live database?',
-                        ok       : 'Run Tests',
-                        submitter: 'developers,release-managers'
-                    )
+                script {
+                    try {
+                        timeout(time: 10, unit: 'MINUTES') {
+                            input(
+                                message  : 'Run integration tests against a live database?',
+                                ok       : 'Run Tests',
+                                submitter: 'developers,release-managers'
+                            )
+                        }
+                        env.RUN_INTEGRATION_TESTS = 'true'
+                    } catch (err) {
+                        env.RUN_INTEGRATION_TESTS = 'false'
+                        echo "Integration tests skipped: no approval within timeout."
+                    }
                 }
             }
         }
@@ -161,11 +170,17 @@ pipeline {
         // Skipped entirely on feature branches.
         stage('Integration Tests') {
             when {
-                anyOf {
-                    branch 'main'
-                    branch 'develop'
-                    branch pattern: 'release/.+', comparator: 'REGEXP'
-                    branch pattern: 'hotfix/.+',  comparator: 'REGEXP'
+                allOf {
+                    anyOf {
+                        branch 'main'
+                        branch 'develop'
+                        branch pattern: 'release/.+', comparator: 'REGEXP'
+                        branch pattern: 'hotfix/.+',  comparator: 'REGEXP'
+                    }
+                    anyOf {
+                        triggeredBy 'TimerTrigger'
+                        environment name: 'RUN_INTEGRATION_TESTS', value: 'true'
+                    }
                 }
             }
             steps {
@@ -175,6 +190,7 @@ pipeline {
                 always {
                     junit testResults: 'build/test-results/integrationTest/**/*.xml',
                           allowEmptyResults: true
+                    sh 'mkdir -p build/reports/tests/integrationTest'
                     publishHTML([
                         allowMissing         : true,
                         alwaysLinkToLastBuild: true,
