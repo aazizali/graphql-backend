@@ -268,14 +268,6 @@ pipeline {
 
     // ─── Post actions ────────────────────────────────────────────────────────
     post {
-        success {
-            script {
-            }
-        }
-
-        failure {
-        }
-
         always {
             // Remove images built during this run to free disk space
             sh "docker rmi ${env.FULL_IMAGE} ${env.IMAGE_NAME}:${env.BRANCH_SLUG} || true"
