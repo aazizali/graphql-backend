@@ -80,7 +80,7 @@ pipeline {
         stage('Prepare') {
             steps {
                 script {
-                    env.GIT_COMMIT_SHORT = sh(script: 'git rev-parse --short HEAD', returnStdout: true).trim()
+                    env.GIT_COMMIT_SHORT = (env.GIT_COMMIT ?: 'unknown').take(7)
                     env.IMAGE_TAG        = "${env.GIT_COMMIT_SHORT}-${env.BUILD_NUMBER}"
                     env.FULL_IMAGE       = "${env.IMAGE_NAME}:${env.IMAGE_TAG}"
                     env.BRANCH_SLUG      = env.BRANCH_NAME.replaceAll('[^a-zA-Z0-9._-]', '-').toLowerCase()
