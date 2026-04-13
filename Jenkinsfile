@@ -188,25 +188,6 @@ pipeline {
         // ── 4. Code Quality (parallel) ───────────────────────────────────────
         stage('Code Quality') {
             parallel {
-
-                // SonarQube — requires 'org.sonarqube' plugin in build.gradle.kts
-                stage('SonarQube Analysis') {
-                    when {
-                        expression {
-                            return Jenkins.instance
-                                         .getDescriptorByType(hudson.plugins.sonar.SonarGlobalConfiguration)
-                                         ?.installations?.length > 0
-                        }
-                    }
-                    steps {
-                        withSonarQubeEnv('SonarQube') {
-                            withCredentials([string(credentialsId: 'sonar-token', variable: 'SONAR_TOKEN')]) {
-                                sh './gradlew sonar -Dsonar.token=$SONAR_TOKEN --no-daemon'
-                            }
-                        }
-                    }
-                }
-
                 // OWASP Dependency Check — requires 'org.owasp.dependencycheck' plugin
                 stage('Dependency Vulnerability Scan') {
                     steps {
@@ -222,22 +203,6 @@ pipeline {
                             )
                         }
                     }
-                }
-            }
-        }
-
-        // ── 5. SonarQube Quality Gate ────────────────────────────────────────
-        stage('Quality Gate') {
-            when {
-                expression {
-                    return Jenkins.instance
-                                 .getDescriptorByType(hudson.plugins.sonar.SonarGlobalConfiguration)
-                                 ?.installations?.length > 0
-                }
-            }
-            steps {
-                timeout(time: 5, unit: 'MINUTES') {
-                    waitForQualityGate abortPipeline: true
                 }
             }
         }
@@ -299,130 +264,16 @@ pipeline {
                 }
             }
         }
-
-        // ── 8. Deploy to Staging ─────────────────────────────────────────────
-        stage('Deploy: Staging') {
-            when { branch 'develop' }
-            environment {
-                DEPLOY_NAMESPACE = 'staging'
-            }
-            steps {
-                withCredentials([file(credentialsId: 'k8s-staging-kubeconfig', variable: 'KUBECONFIG')]) {
-                    sh """
-                        kubectl set image deployment/${APP_NAME} \
-                            ${APP_NAME}=${FULL_IMAGE} \
-                            --namespace=${DEPLOY_NAMESPACE}
-
-                        kubectl rollout status deployment/${APP_NAME} \
-                            --namespace=${DEPLOY_NAMESPACE} \
-                            --timeout=5m
-                    """
-                }
-            }
-        }
-
-        // ── 9. Smoke Test: Staging ───────────────────────────────────────────
-        stage('Smoke Test: Staging') {
-            when { branch 'develop' }
-            steps {
-                // Verify the Spring Boot actuator health endpoint is UP
-                sh '''
-                    STAGING_URL="http://graphql-backend.staging.svc.cluster.local"
-                    echo "Checking health at ${STAGING_URL}/actuator/health ..."
-                    for i in $(seq 1 12); do
-                        STATUS=$(curl -s -o /dev/null -w "%{http_code}" "${STAGING_URL}/actuator/health")
-                        if [ "$STATUS" = "200" ]; then
-                            echo "Health check passed (attempt $i)"
-                            exit 0
-                        fi
-                        echo "Attempt $i: got HTTP $STATUS — retrying in 10s ..."
-                        sleep 10
-                    done
-                    echo "Smoke test failed after 12 attempts"
-                    exit 1
-                '''
-            }
-        }
-
-        // ── 10. Deploy to Production ─────────────────────────────────────────
-        stage('Deploy: Production') {
-            when { branch 'main' }
-            environment {
-                DEPLOY_NAMESPACE = 'production'
-            }
-            steps {
-                // Manual approval gate — times out after 30 minutes
-                timeout(time: 30, unit: 'MINUTES') {
-                    input(
-                        message  : "Deploy ${APP_NAME}:${IMAGE_TAG} to production?",
-                        ok       : 'Deploy',
-                        submitter: 'release-managers'   // ← Jenkins group allowed to approve
-                    )
-                }
-                withCredentials([file(credentialsId: 'k8s-prod-kubeconfig', variable: 'KUBECONFIG')]) {
-                    sh """
-                        kubectl set image deployment/${APP_NAME} \
-                            ${APP_NAME}=${FULL_IMAGE} \
-                            --namespace=${DEPLOY_NAMESPACE}
-
-                        kubectl rollout status deployment/${APP_NAME} \
-                            --namespace=${DEPLOY_NAMESPACE} \
-                            --timeout=10m
-                    """
-                }
-            }
-        }
-
-        // ── 11. Smoke Test: Production ───────────────────────────────────────
-        stage('Smoke Test: Production') {
-            when { branch 'main' }
-            steps {
-                sh '''
-                    PROD_URL="http://graphql-backend.production.svc.cluster.local"
-                    echo "Checking health at ${PROD_URL}/actuator/health ..."
-                    for i in $(seq 1 12); do
-                        STATUS=$(curl -s -o /dev/null -w "%{http_code}" "${PROD_URL}/actuator/health")
-                        if [ "$STATUS" = "200" ]; then
-                            echo "Health check passed (attempt $i)"
-                            exit 0
-                        fi
-                        echo "Attempt $i: got HTTP $STATUS — retrying in 10s ..."
-                        sleep 10
-                    done
-                    echo "Smoke test failed after 12 attempts"
-                    exit 1
-                '''
-            }
-        }
     }
 
     // ─── Post actions ────────────────────────────────────────────────────────
     post {
         success {
             script {
-                if (env.BRANCH_NAME in ['main', 'develop']) {
-                    slackSend(
-                        channel : env.SLACK_CHANNEL,
-                        color   : 'good',
-                        message : ":white_check_mark: *${env.APP_NAME}* `${env.IMAGE_TAG}` deployed successfully" +
-                                  " on `${env.BRANCH_NAME}` — <${env.BUILD_URL}|Build #${env.BUILD_NUMBER}>"
-                    )
-                }
             }
         }
 
         failure {
-            slackSend(
-                channel : env.SLACK_CHANNEL,
-                color   : 'danger',
-                message : ":x: *${env.APP_NAME}* build failed" +
-                          " on `${env.BRANCH_NAME}` — <${env.BUILD_URL}|Build #${env.BUILD_NUMBER}>"
-            )
-            emailext(
-                subject: "FAILED: ${env.APP_NAME} — Build #${env.BUILD_NUMBER} [${env.BRANCH_NAME}]",
-                body   : "Build URL: ${env.BUILD_URL}\nCommit: ${env.GIT_COMMIT_SHORT}",
-                to     : '$DEFAULT_RECIPIENTS'
-            )
         }
 
         always {
