@@ -58,6 +58,13 @@ pipeline {
         SLACK_CHANNEL  = '#ci-notifications'              // ← replace with your channel
     }
 
+    // ─── Triggers ────────────────────────────────────────────────────────────
+    // Run integration tests automatically every weekday at 9:00 AM EST (14:00 UTC).
+    // On a scheduled run the manual confirmation stage is skipped automatically.
+    triggers {
+        cron('TZ=America/New_York\n0 9 * * 1-5')
+    }
+
     // ─── Pipeline options ────────────────────────────────────────────────────
     options {
         buildDiscarder(logRotator(numToKeepStr: '15', artifactNumToKeepStr: '5'))
@@ -97,10 +104,10 @@ pipeline {
             }
         }
 
-        // ── 3. Test ──────────────────────────────────────────────────────────
-        // Testcontainers spins up a real PostgreSQL container.
-        // The Docker socket mount in the agent enables this.
-        stage('Test') {
+        // ── 3a. Unit Tests ───────────────────────────────────────────────────
+        // Runs on every branch — no Docker, no Testcontainers required.
+        // Only classes NOT annotated with @Tag("integration") are executed.
+        stage('Unit Tests') {
             steps {
                 sh './gradlew test --no-daemon'
             }
@@ -114,7 +121,65 @@ pipeline {
                         keepAll              : true,
                         reportDir            : 'build/reports/tests/test',
                         reportFiles          : 'index.html',
-                        reportName           : 'Test Report'
+                        reportName           : 'Unit Test Report'
+                    ])
+                }
+            }
+        }
+
+        // ── 3b. Confirm: Integration Tests ───────────────────────────────────
+        // Skipped automatically when triggered by the 9am EST cron schedule.
+        // On push-triggered builds a human must approve before Testcontainers
+        // spins up a real PostgreSQL instance.
+        stage('Confirm: Run Integration Tests') {
+            when {
+                allOf {
+                    not { triggeredBy 'TimerTrigger' }
+                    anyOf {
+                        branch 'main'
+                        branch 'develop'
+                        branch pattern: 'release/.+', comparator: 'REGEXP'
+                    }
+                }
+            }
+            steps {
+                timeout(time: 10, unit: 'MINUTES') {
+                    input(
+                        message  : 'Run integration tests against a live database?',
+                        ok       : 'Run Tests',
+                        submitter: 'developers,release-managers'
+                    )
+                }
+            }
+        }
+
+        // ── 3c. Integration Tests ─────────────────────────────────────────────
+        // Testcontainers spins up a real PostgreSQL container.
+        // Only classes annotated with @Tag("integration") are executed.
+        // Skipped entirely on feature branches.
+        stage('Integration Tests') {
+            when {
+                anyOf {
+                    branch 'main'
+                    branch 'develop'
+                    branch pattern: 'release/.+', comparator: 'REGEXP'
+                    branch pattern: 'hotfix/.+',  comparator: 'REGEXP'
+                }
+            }
+            steps {
+                sh './gradlew integrationTest --no-daemon'
+            }
+            post {
+                always {
+                    junit testResults: 'build/test-results/integrationTest/**/*.xml',
+                          allowEmptyResults: true
+                    publishHTML([
+                        allowMissing         : true,
+                        alwaysLinkToLastBuild: true,
+                        keepAll              : true,
+                        reportDir            : 'build/reports/tests/integrationTest',
+                        reportFiles          : 'index.html',
+                        reportName           : 'Integration Test Report'
                     ])
                 }
             }

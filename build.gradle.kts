@@ -61,6 +61,19 @@ tasks.withType<JavaCompile> {
     options.compilerArgs.add("-parameters")
 }
 
+// Default test task runs unit tests only (excludes @Tag("integration"))
 tasks.withType<Test> {
-    useJUnitPlatform()
+    useJUnitPlatform {
+        excludeTags("integration")
+    }
+}
+
+// Separate task for integration tests — requires Docker / Testcontainers
+tasks.register<Test>("integrationTest") {
+    description = "Runs integration tests that require Docker and Testcontainers."
+    group = "verification"
+    useJUnitPlatform {
+        includeTags("integration")
+    }
+    shouldRunAfter("test")
 }
